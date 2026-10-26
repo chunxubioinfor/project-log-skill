@@ -21,8 +21,14 @@ When most of the work happens through an AI agent, it's easy to lose track of wh
 
 ## Install
 
+The easy way: in Claude Code, say
+
+> Install the project-log skill from https://github.com/chunxubioinfor/project-log-skill
+
+Or do it yourself:
+
 ```bash
-git clone <this repo> ~/Projects/project-log-skill
+git clone https://github.com/chunxubioinfor/project-log-skill ~/Projects/project-log-skill
 ~/Projects/project-log-skill/install.sh        # copies the skill to ~/.claude/skills/project-log
 ```
 
