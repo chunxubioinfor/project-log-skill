@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="generator" content="project-log __VERSION__">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<header class="hero pad">
+  <div class="wrap">
+    <div class="sheet">
+      <span class="eyebrow" id="eyebrow"></span>
+      <h1 id="title"></h1>
+      <p class="lede" id="lede"></p>
+      <div class="stamp" id="stamp"></div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs pad" aria-label="Sections">
+  <div class="wrap" role="tablist" id="tablist"></div>
+</nav>
+
+<main class="pad">
+  <div class="wrap" id="panels">
+    <section class="tab" data-panel="overview" hidden></section>
+    <section class="tab" data-panel="timeline" hidden></section>
+    <section class="tab" data-panel="results" hidden></section>
+    <section class="tab" data-panel="side" hidden></section>
+    <section class="tab" data-panel="loops" hidden></section>
+    <section class="tab" data-panel="next" hidden></section>
+    <section class="tab" data-panel="digests" hidden></section>
+    <section class="tab" data-panel="glossary" hidden></section>
+    <section class="tab" data-panel="changelog" hidden></section>
+    <footer class="note" id="footnote"></footer>
+  </div>
+</main>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="hatchMain" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface)"/><rect width="3" height="6" fill="var(--main)" opacity=".55"/></pattern>
+    <pattern id="hatchSide" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface)"/><rect width="3" height="6" fill="var(--side)" opacity=".55"/></pattern>
+  </defs>
+</svg>
+
+<script type="application/json" id="plog-data">__DATA__</script>
+<script>/*__PLOTLY__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>
