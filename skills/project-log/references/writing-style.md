@@ -46,12 +46,25 @@ Use the paper's main finding as the title ("Mixing in known-negative controls ex
 
 ## Overview summary (project.yaml)
 
-Three short paragraphs, rewritten before each build. The page shows them side by side under the headings "Where we are", "What we learned" and "What's next", so each one must make sense on its own (about 40–60 words):
+Three cards, rewritten before each build. The page shows them side by side under the headings "Where we are", "What we learned" and "What's next". Each card is a list of 2–3 short bullets, about 12 words each at most, that a supervisor can take in at a glance:
 1. What the project does and where it stands, with the most important result so far.
 2. What was learned recently, with one or two key numbers.
 3. What is open or next, and anything that needs a decision.
 
-To use other headings, write an item as `{label: ..., text: ...}` instead of a plain string.
+```yaml
+summary:
+  - - Isoform switch pilot on 6 public samples
+    - Switch test done; consequences annotated
+  - - 5 genes switch, all involving iPS cells
+    - "The iPS replicates are near-identical (r = 1.00)"
+  - - "Needs a decision: trust the iPS switches?"
+```
+
+Quote a bullet that contains a colon. To use other headings, write a card as `{label: ..., items: [...]}`.
+
+## Project title
+
+Short: a question or a name under about 50 characters ("Isoform switches in reprogramming"). The details go in the lede, one or two sentences under the title.
 
 ## Session digest
 

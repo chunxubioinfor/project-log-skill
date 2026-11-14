@@ -1,0 +1,8 @@
+gene_name	condition_1	condition_2	featureCompared	switchConsequence
+MEGF6	Fibroblasts	iPS	ORF_seq_similarity	ORF is longer
+MEGF6	Fibroblasts	iPS	domains_identified	Domain gain
+ARHGEF19	hESC	iPS	ORF_seq_similarity	ORF is longer
+ARHGEF19	hESC	iPS	domains_identified	Domain gain
+ARHGEF19	hESC	iPS	IDR_identified	IDR gain
+LYPLA2	hESC	iPS	ORF_seq_similarity	ORF is longer
+SRM	hESC	iPS	ORF_seq_similarity	ORF is shorter

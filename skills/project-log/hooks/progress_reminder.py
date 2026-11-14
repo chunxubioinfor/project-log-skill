@@ -32,7 +32,7 @@ def main() -> None:
     log_dir = next((d / "project-log" for d in [here, *here.parents] if (d / "project-log" / "project.yaml").exists()), None)
     if not log_dir:
         return
-    m = re.search(r'^progress_file:\s*"?([^"\n]*)"?\s*$', (log_dir / "project.yaml").read_text(encoding="utf-8"), re.M)
+    m = re.search(r'^progress_file:\s*["\']?([^"\'#\n]*?)["\']?\s*(?:#.*)?$', (log_dir / "project.yaml").read_text(encoding="utf-8"), re.M)
     if m and m.group(1).strip():
         if Path(path).resolve() != (log_dir.parent / m.group(1).strip()).resolve():
             return

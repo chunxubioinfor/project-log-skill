@@ -33,6 +33,9 @@ stdin) for longer Markdown. Jargon: write [[FDR]] or [[decoy|decoys]].
 from __future__ import annotations
 
 import argparse
+import contextlib
+import copy
+import io
 import json
 import re
 import socket
@@ -74,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--machine", help="machine the work ran on (imports: only if the source says)")
     # result block
     ap.add_argument("--so-what", help="results: one line on why the reader should care")
-    ap.add_argument("--figure", help="results: Plotly JSON written by a figure script")
+    ap.add_argument("--figure", help="results: the figure shown on the page: Plotly JSON (interactive) or an image (PNG, SVG, JPEG, WebP)")
     ap.add_argument("--static", help="results: static SVG/PNG of the figure")
     ap.add_argument("--fig-script", help="results: script that makes the figure")
     ap.add_argument("--key", action="append", default=[], help='results: "label=value" key number (repeatable)')
@@ -133,10 +136,10 @@ def write_entry(a, log_dir: Path, planned: set | None = None) -> dict:
                 near = sorted(p.stem for p in entries_dir.glob(f"{ref[:24]}*.md"))[:3]
                 raise ValueError(f"--{field} {ref}: no such entry" + (f" (did you mean {', '.join(near)}?)" if near else ""))
 
-    ts = a.ts or plog.now_iso()
+    ts = re.sub(r"Z$", "+00:00", a.ts) if a.ts else plog.now_iso()
     base = plog.make_id(ts, a.type, a.title)
     eid, n = base, 2
-    while (entries_dir / f"{eid}.md").exists():
+    while (entries_dir / f"{eid}.md").exists() or eid in (planned or set()):
         eid, n = f"{base}-{n}", n + 1
     path = entries_dir / f"{eid}.md"
 
@@ -228,6 +231,13 @@ def run_batch(ap, a, log_dir: Path) -> None:
     items = json.loads(raw)
     if not isinstance(items, list):
         raise SystemExit("--batch input must be a JSON list of entries")
+    if not a.dry_run:  # check the whole batch first, so a bad item never leaves half a batch written
+        with contextlib.redirect_stdout(io.StringIO()):
+            _batch(ap, argparse.Namespace(**{**vars(a), "dry_run": True}), log_dir, copy.deepcopy(items))
+    _batch(ap, a, log_dir, items)
+
+
+def _batch(ap, a, log_dir: Path, items: list) -> None:
     keys_file = log_dir / "keys.json"
     keys = json.loads(keys_file.read_text()) if keys_file.exists() else {}
     defaults = vars(ap.parse_args([]))

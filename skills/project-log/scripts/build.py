@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -36,6 +37,18 @@ def category(etype: str) -> str:
         "decision": "decision", "question": "decision",
         "followup": "open", "plan": "open",
     }.get(etype, "progress")
+
+
+PLOTLY_MODES = ("link", "embed")
+
+
+def plotly_tag(mode: str) -> str:
+    """"link": load the bundled Plotly version from a CDN (page stays small; charts need internet).
+    "embed": put the whole library in the page (about 4.7 MB; works offline)."""
+    if mode == "embed":
+        return "<script>" + plotly_js().replace("</script", "<\\/script").replace("�", "\\uFFFD") + "</script>"
+    from plotly.offline import get_plotlyjs_version
+    return f'<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/{get_plotlyjs_version()}/plotly.min.js"></script>'
 
 
 def plotly_js() -> str:
@@ -110,9 +123,14 @@ def assemble(log_dir: Path, ctx: dict, built_at: str) -> tuple[dict, bool]:
             r["so_what_html"] = plog.md_inline(r.get("so_what", ""))
             if r.get("figure"):
                 fig_path = base / r["figure"]
-                figures[r["id"]] = json.loads(fig_path.read_text(encoding="utf-8"))
+                mime = plog.IMAGE_TYPES.get(fig_path.suffix.lower())
+                if mime:   # a picture, e.g. from R: shown as it is, no chart library needed
+                    figures[r["id"]] = {"image": f"data:{mime};base64," + base64.b64encode(fig_path.read_bytes()).decode(),
+                                        "alt": e["title"]}
+                else:
+                    figures[r["id"]] = json.loads(fig_path.read_text(encoding="utf-8"))
+                    has_fig = True
                 r["figure_key"] = r["id"]
-                has_fig = True
             if r.get("static"):
                 r["static_href"] = os.path.relpath(base / r["static"], report_dir)
             item["result"] = r
@@ -153,12 +171,8 @@ def assemble(log_dir: Path, ctx: dict, built_at: str) -> tuple[dict, bool]:
         "glossary": glossary,
         "alias": alias_to_key,
         "overview": {
-            # items are strings, or {label, text} to override the default column headings
-            "summary": [
-                {"label": p.get("label"), "html": plog.md_inline(p.get("text", ""))} if isinstance(p, dict)
-                else {"label": None, "html": plog.md_inline(str(p))}
-                for p in overview.get("summary") or []
-            ],
+            # items are lists of short bullets (or a plain string), or {label, items | text} to rename the heading
+            "summary": [summary_card(p) for p in overview.get("summary") or []],
             "tiles": overview.get("tiles") or [],
             "figure": overview.get("figure"),   # optional R-number shown on the Overview
         },
@@ -168,15 +182,25 @@ def assemble(log_dir: Path, ctx: dict, built_at: str) -> tuple[dict, bool]:
     return data, has_fig
 
 
-def render(data: dict, has_fig: bool) -> str:
+def summary_card(item) -> dict:
+    """One Overview card: a list of bullets, or a paragraph for older projects."""
+    label, body = (item.get("label"), item.get("items", item.get("text", ""))) if isinstance(item, dict) else (None, item)
+    if isinstance(body, list):
+        return {"label": label, "html": "<ul>" + "".join(f"<li>{plog.md_inline(str(b))}</li>" for b in body) + "</ul>"}
+    return {"label": label, "html": f"<p>{plog.md_inline(str(body))}</p>"}
+
+
+def render(data: dict, has_fig: bool, plotly_mode: str = "embed") -> str:
     template = (ASSETS / "template.html").read_text(encoding="utf-8")
+    template = template.replace("<script>/*__PLOTLY__*/</script>", "/*__PLOTLY__*/")  # the tag comes from plotly_tag()
     # U+FFFD is escaped (same meaning in JSON/JS) so publishing tools don't mistake it for a lost character
-    payload = (json.dumps(data, ensure_ascii=False).replace("</", "<\\/").replace("<!--", "<\\!--")
+    # every "<" as \u003c, so no "</script>" or "<!--" in entry text can end the data block early
+    payload = (json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
                .replace("�", "\\ufffd"))
     parts = {
         "CSS": (ASSETS / "theme.css").read_text(encoding="utf-8"),
         "APP": (ASSETS / "app.js").read_text(encoding="utf-8"),
-        "PLOTLY": plotly_js().replace("</script", "<\\/script").replace("�", "\\uFFFD") if has_fig else "",
+        "PLOTLY": plotly_tag(plotly_mode) if has_fig else "",
         "DATA": payload,
         "TITLE": _esc(data["project"]["title"]),
         "VERSION": plog.TEMPLATE_VERSION,
@@ -223,7 +247,10 @@ def main():
     if a.draft:
         data["draft"] = sum(1 for e in entries if e.get("imported") and not e.get("reviewed"))
 
-    html = render(data, has_fig)
+    mode = (ctx["project"].get("figures") or {}).get("plotly") or "embed"
+    if mode not in PLOTLY_MODES:
+        sys.exit(f"build: figures.plotly in project.yaml must be one of {', '.join(PLOTLY_MODES)}, not '{mode}'")
+    html = render(data, has_fig, mode)
     out = log_dir / "report" / ("draft.html" if a.draft else "project-log.html")
     if a.draft:
         out.parent.mkdir(parents=True, exist_ok=True)

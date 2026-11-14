@@ -1,80 +1,109 @@
+<div align="center">
+
 # project-log
 
-A [Claude Code](https://claude.com/claude-code) skill that keeps a research project's story while you work, and turns it into one readable, interactive HTML page.
+**A lab notebook that writes itself while Claude Code does your research.**
 
-It logs progress, results, bugs that were fixed, detours, decisions, corrections, open follow-ups, side projects, papers and jargon. Every result carries its "so what", the script, the commit and the data version. The page has a timeline, a Gantt chart, interactive figures, open loops, a glossary and a changelog. The top is a two-minute read for a supervisor, and the detail sits underneath.
+Claude logs results, bugs, detours and decisions as they happen, and builds one interactive page your supervisor can read in two minutes.
 
-![Overview of the demo project](docs/screenshot.png)
+[![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-D97757)](https://claude.com/claude-code)
+[![Version](https://img.shields.io/badge/version-0.3.0-0E8C78)](CHANGELOG.md)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3B6FC4)](#requirements)
+[![License: MIT](https://img.shields.io/badge/license-MIT-9AA8B5)](LICENSE)
 
-*The demo project is made up. Build it yourself with `examples/demo/make_demo.sh`.*
+[**Live demo**](https://claude.ai/artifact/Bfw53U8hSVwVEtTxFsraP8) · [Install](#install) · [How to use it](#use-it) · [What you get](#what-you-get)
+
+![The demo page: summary, key numbers, what changed, and a Gantt chart of the project](docs/screenshot.png)
+
+<sub>The demo is a real isoform-switch analysis of the example data in IsoformSwitchAnalyzeR; the people and a few mishaps are made up. Rebuild it with <code>examples/demo/make_demo.sh</code>.</sub>
+
+</div>
 
 ## Why
 
-When most of the work happens through an AI agent, it's easy to lose track of what was tried, what broke and was fixed, and what was left for later. Progress notes help, but they are hard to scan, hard to trust and hard to show to anyone else. This skill makes Claude write a structured, append-only log as it works, and builds a page you can send to your supervisor.
+When an AI agent does half the work, the project's story gets lost fast:
 
-## Requirements
+| The problem | What project-log does |
+|---|---|
+| *"What did we try last month, and why did we drop it?"* | Every bug, detour and decision becomes a short entry **as it happens**, with the reason. |
+| *"Which commit and data made this figure?"* | Commit, uncommitted changes, scripts and data checksums are **captured automatically**. |
+| *"Is this number still right?"* | The log is **append-only**. Mistakes get a correction entry, and the old claim shows a *Corrected later* banner. |
+| *"Can you send me an update?"* | One command builds a page with a **two-minute summary on top** and full detail underneath. |
+| *"What's still open?"* | Follow-ups, blockers and questions stay in **Open loops** until something closes them. |
 
-- Claude Code
-- git, and Python 3.9 or newer (logging uses only the standard library, so it also works on a cluster)
-- [uv](https://docs.astral.sh/uv/) to build the page and make figures (it fetches PyYAML and Plotly by itself)
-- Google Chrome, only for exporting figures as static SVG for slides
+## Features
+
+- **Overview for your supervisor:** where you are, what you learned and what's next, 3–4 key numbers, and decisions waiting on them.
+- **Gantt chart** of the main work and side projects, with milestones, bugs and what's still running.
+- **Figures** with every result: interactive Plotly charts, or your tools' own plots (R, ggplot) as images. Each is made by a rerunnable script, and Claude asks before making one.
+- **Timeline** of every entry, filterable by thread and type, with tables, links and provenance.
+- **Glossary** with hover definitions, so non-specialists can follow along.
+- **Paper digests:** what each paper found and why it matters here.
+- **Safety checks:** the build refuses edited entries, changed figures, broken links, results without a "so what", and duplicate files made by iCloud or Dropbox.
+- **Recoverable:** every page embeds the whole log, so a lost log can be rebuilt from any copy.
 
 ## Install
 
-The easy way: in Claude Code, say
+In Claude Code:
 
-> Install the project-log skill from https://github.com/chunxubioinfor/project-log-skill
+```text
+/plugin marketplace add chunxubioinfor/project-log-skill
+/plugin install project-log@project-log-skill
+```
 
-Or do it yourself:
+That's it. If the skill doesn't show up straight away, restart Claude Code.
+
+<details>
+<summary>Manual install (no plugin system, or on a cluster)</summary>
 
 ```bash
 git clone https://github.com/chunxubioinfor/project-log-skill ~/Projects/project-log-skill
-~/Projects/project-log-skill/install.sh        # copies the skill to ~/.claude/skills/project-log
+~/Projects/project-log-skill/install.sh     # copies the skill to ~/.claude/skills/project-log
 ```
 
-Run `install.sh` again after pulling updates. On a cluster, copy `~/.claude/skills/project-log/` across, e.g. with `rsync`.
+Run `install.sh` again after `git pull`. Don't clone into `~/.claude/skills/` itself; `install.sh` refuses to run from there. On a cluster, copy `~/.claude/skills/project-log/` across, e.g. with `rsync`.
+</details>
 
-## Use it in a project
+### Requirements
 
-Open Claude Code in your project folder and say:
+- Claude Code, git, and Python 3.9+. Logging uses only the standard library, so it works on any machine.
+- [uv](https://docs.astral.sh/uv/) to build the page and make figures (it fetches PyYAML and Plotly itself).
+- Optional: Google Chrome, to also export each figure as SVG for slides.
+
+## Use it
+
+Open Claude Code in your project folder and just talk:
 
 | When | Say |
 |---|---|
-| Once, at the start | **"Set up the project log"**: Claude asks three questions (audience, tabs, figure conventions) and sets things up. If the repo already has history, it offers to import it as a draft for you to review first. |
-| While you work | Nothing. Claude logs bugs, results, decisions, detours and follow-ups as they happen. If it misses something: "log that". |
-| A result with numbers | Claude proposes a chart; say yes or adjust it. |
-| End of a session | **"Let's wrap up"**: Claude lists what was logged and what is still open, asks what to add, and writes a session summary. |
-| To see the page | **"Update the project log"**: refreshes the overview, builds `project-log/report/project-log.html` and tells you what changed. |
-| To share it | **"Publish the project log"**: needs the Artifact tool; otherwise send the HTML file. |
-| After working elsewhere without the skill | **"Catch the project log up since <date>"** |
+| Once, at the start | **"Set up the project log"**. Claude reads your repo, then asks four quick questions (audience, tabs, figure style, charts online or offline). If there's history, it offers to import it as a draft for you to review. |
+| While you work | Nothing. Claude logs as it goes. If it misses something: *"log that"*. |
+| A result with numbers | Claude proposes a chart in one sentence. Say yes, or adjust it. |
+| End of a session | **"Let's wrap up"**. Claude lists what was logged and what's still open, asks what to add, and writes a session summary. |
+| To see the page | **"Update the project log"**. Builds `project-log/report/project-log.html` and tells you what changed. |
+| To share it | **"Publish the project log"**. Gives a private link (needs the Artifact tool); or send the HTML file. |
+| After working without it | **"Catch the project log up since 3 Nov"** |
 
-Setup adds a short "Project log" section to your `CLAUDE.md`, and a hook in `.claude/settings.json`. After Claude edits your progress notes (e.g. `PROGRESS.md`), the hook reminds it to log the same facts. Commit both, and trust the folder when Claude Code asks, so that the hook runs.
+## What you get
 
-## What's in your repo afterwards
-
-```
+```text
 project-log/
-  project.yaml        title, threads (main work and side projects), overview text, settings
+  project.yaml        title, threads (main work, side projects), overview, settings
   entries/            one small Markdown file per entry, append-only
-  figures/scripts/    the scripts that make each figure (rerunnable)
-  figures/out/        interactive Plotly JSON and static SVG
-  report/             the built page and its build history
+  figures/scripts/    the script behind every figure (rerunnable)
+  figures/out/        interactive Plotly JSON, plus SVG for slides
+  report/             the built page (about 0.3 MB) and its build history
 ```
 
-## Guarantees
-
-- **Append-only.** A published entry is never edited. Mistakes get a correction entry, which the page shows as a "Corrected later" banner. The build refuses to run if a published entry or figure has changed.
-- **Provenance captured, not typed.** Commit, uncommitted-changes flag, scripts and data hashes are recorded automatically.
-- **Nothing reaches the page unchecked.** Broken links, results without a "so what", glossary terms without a definition, unreviewed imports and copies made by sync tools (iCloud, Dropbox) all stop the build.
-- **Recoverable.** Every page embeds all entries, so a lost log can be rebuilt from any page.
+Setup also adds a short "Project log" section to your `CLAUDE.md`. When you edit your progress notes (e.g. `PROGRESS.md`), a small hook reminds Claude to log the same facts. Commit `project-log/` like any other code.
 
 ## Privacy
 
-The page embeds the full log. Treat it like your lab notebook, and share it only with people who may see your unpublished work. Keep repositories out of synced folders (iCloud Desktop & Documents, Dropbox), which create duplicate files.
+The page contains your whole log. Treat it like your lab notebook, and share it only with people who may see unpublished work. Shared links are private until you choose to share them. Keep git repositories out of synced folders (iCloud Desktop & Documents, Dropbox), which create duplicate files.
 
 ## Develop
 
-`tests/smoke.sh` builds the demo and checks the guarantees above. The skill itself is in `skills/project-log/`; `SKILL.md` is the entry point.
+`tests/smoke.sh` builds the demo from scratch and checks every guarantee above (needs `uv`). The skill lives in `skills/project-log/`, and `SKILL.md` is the entry point. Issues and pull requests are welcome. This is an early release, tested on one real research project so far.
 
 ## License
 

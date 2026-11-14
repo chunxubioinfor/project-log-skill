@@ -29,7 +29,7 @@ def _ts_ok(ts: str) -> bool:
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", ts):
             date.fromisoformat(ts)
         else:
-            datetime.fromisoformat(ts)
+            datetime.fromisoformat(re.sub(r"Z$", "+00:00", ts))  # Python < 3.11 rejects "Z"
         return True
     except ValueError:
         return False
@@ -156,8 +156,9 @@ def validate(log_dir: Path, accept_edits: bool = False, draft: bool = False):
                 errors.append(f"{where}: [[{t}]] has no glossary term entry")
 
     overview = project.get("overview") or {}
-    for para in overview.get("summary") or []:
-        for t in plog.terms_used(para.get("text", "") if isinstance(para, dict) else str(para)):
+    for card in overview.get("summary") or []:
+        body = card.get("items", card.get("text", "")) if isinstance(card, dict) else card
+        for t in plog.terms_used(" ".join(map(str, body)) if isinstance(body, list) else str(body)):
             if t not in terms:
                 errors.append(f"project.yaml overview.summary: [[{t}]] has no glossary term entry")
     fig = overview.get("figure")

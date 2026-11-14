@@ -7,7 +7,7 @@ description: Keeps a structured, append-only log of a research project (progress
 
 The log in `<repo>/project-log/` is the source of truth. The HTML page is a build output: never edit `report/project-log.html` by hand.
 
-Scripts live next to this file in `scripts/`. Here and in the references, `$PL` means `${CLAUDE_SKILL_DIR}/scripts` (normally `~/.claude/skills/project-log/scripts`). Set it once per shell: `PL="${CLAUDE_SKILL_DIR}/scripts"`.
+Scripts live next to this file in `scripts/`. Here and in the references, `$PL` means `${CLAUDE_SKILL_DIR}/scripts` (normally `~/.claude/skills/project-log/scripts`). Shell variables do not carry over between Bash calls, so start each command with `PL="${CLAUDE_SKILL_DIR}/scripts";` or write the full path.
 
 - `new_event.py` writes one entry. It uses only the standard library, so it runs on any machine.
 - `provenance.py` captures the git commit, script paths and data hashes. Standard library only.
@@ -19,6 +19,7 @@ Scripts live next to this file in `scripts/`. Here and in the references, `$PL` 
 2. **Plain language.** Write for a supervisor reading in two minutes, and for the user six weeks from now. Follow [references/writing-style.md](references/writing-style.md). Mark jargon as `[[term]]`, and create a `term` entry the first time a term appears.
 3. **Every result answers "so what".** A result entry needs `--so-what`, one sentence on why the reader should care.
 4. **Provenance is captured, never typed.** Let `new_event.py` record the commit and hashes. Pass `--script`, `--data`, `--run-manifest` or `--data-version` for anything that produced a number.
+   - The captured commit is the repo's state *now*. For a run that happened earlier or elsewhere, also pass `--run-manifest` or `--git-commit <the run's commit>`, and say in the body if the data in the repo is not from that run.
 5. **Respect the project's own rules.** Follow its CLAUDE.md on git: who commits, authorship, and whether to push. Never add AI co-author trailers in a project that forbids them.
    - If the project's rules don't say when to commit, ask before committing.
    - Never push unless those rules or the user say to.
@@ -53,7 +54,7 @@ python3 $PL/new_event.py --type bug --thread norm-v2 \
   --commit 8a41c07
 ```
 
-Each entry needs a `--thread` from `project.yaml`. If none fits, add a thread first. The full field list is in [references/event-schema.md](references/event-schema.md).
+Each entry except `term`, `paper` and `session` needs a `--thread` from `project.yaml`. If none fits, add a thread first. The full field list is in [references/event-schema.md](references/event-schema.md).
 
 **Several entries at once** (e.g. at wrap-up): pass them as a JSON list on stdin, with `new_event.py --batch - <<'EOF' [...] EOF`. A quoted heredoc means no shell quoting to get wrong.
 - Entries can refer to each other by `"ref": "name"` / `"@name"` (also in `paper`); `"key"` stays the result key-number field. Keys are kept in `project-log/keys.json`; commit that file with the log.
@@ -67,6 +68,7 @@ Choosing types, in common cases:
 - **News that closes an open item:** write one entry that `--resolves` it. If the news also shows an earlier claim was wrong, the same entry may `--corrects` it too.
 - **A decision relayed by the user** ("the supervisor decided…"): log it as a `decision`, and say in the body who decided and how it reached us.
 - **An agreed action that waits on someone** ("the user will email the supervisor"): write a `followup` with `--related` to the open question. Don't open a second question for the same thing.
+- **A rerun that replaces a result:** log the new result with `--related` to the old one. Add a `correction` only if the old result was *wrong* (a bug, bad input). A deliberate change (dropping a sample, a new setting) supersedes it without making it wrong.
 - **Other documents that the news makes stale** (dashboards, results docs): don't edit them unless asked. Log a `followup` and mention it to the user.
 
 Timestamps default to the system clock. Pass `--ts` only when the user gives a different time, or when logging something that happened earlier.
@@ -75,7 +77,8 @@ Timestamps default to the system clock. Pass `--ts` only when the user gives a d
 
 1. Check whether a figure already exists for the result. If not, propose a chart in one sentence: the chart type and why it fits the comparison. Ask before writing the script.
 2. Write a reusable script in `project-log/figures/scripts/<name>.py` that follows [references/figures.md](references/figures.md). It reads the data, writes `figures/out/<name>.json` (interactive Plotly) and `<name>.svg` (static), and runs with `uv run`.
-3. Run it, then log the result with `--figure`, `--static` and `--fig-script` pointing at those files.
+   When a tool draws the figure itself (an R package's plot, ggplot), don't redraw it: save its own output as a PNG or SVG from a script in `figures/scripts/` and log that image as the figure (see figures.md).
+3. Run it, then log the result with `--figure`, `--static` and `--fig-script` pointing at those files. The page then shows the chart with the result, in the Timeline and Results tabs; `overview.figure` puts one chart on the Overview as well.
 
 ## Workflow: session wrap-up
 
@@ -93,7 +96,7 @@ When the user asks to update, rebuild or refresh the project log or the page:
 
 1. **Catch up.** Skim PROGRESS.md and the conversation for facts that were never logged, and log them first.
 2. **Refresh the overview in `project.yaml`.** This is current state, so editing it is fine. Read [references/writing-style.md](references/writing-style.md) first.
-   - `overview.summary`: three paragraphs of about 40–60 words (Where we are / What we learned / What's next).
+   - `overview.summary`: three cards (Where we are / What we learned / What's next), each 2–3 short bullets of about 12 words at most.
    - `overview.tiles`: 3–4 key numbers, each linked to `R<n>`, `thread:<id>` or `tab:<name>`. Labels are one short line. Change a tile when its number is superseded, or when a newer result matters more to the supervisor.
    - `overview.figure` (optional): the R-number of the one figure that best shows where the project stands.
 3. **Build.** Run `uv run $PL/build.py`, from inside the repo. It validates first and stops on errors; fix them, never work around them. If an entry really must change after publishing, run `--accept-edits`, which lists the edit in the Changelog.
@@ -112,7 +115,7 @@ When the user asks for a link to share: publish `project-log/report/project-log.
 
 ## Setup and backfill
 
-- New project, or "set up the project log": [references/setup.md](references/setup.md). It covers the kickoff round (audience, tabs, figure conventions), `setup_project.py`, the CLAUDE.md section and the PROGRESS.md hook.
+- New project, or "set up the project log": [references/setup.md](references/setup.md). It covers the kickoff round (audience, tabs, figure conventions, how charts load), `setup_project.py`, the CLAUDE.md section and the PROGRESS.md hook.
 - Existing history: [references/backfill.md](references/backfill.md). The import from PROGRESS.md, git and run manifests produces `imported` entries. The user reviews them on a `--draft` page and approves them with `mark_reviewed.py` before the first build.
 
 ## Problems

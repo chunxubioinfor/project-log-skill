@@ -11,11 +11,11 @@ import html
 import json
 import re
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 LOG_DIR_NAME = "project-log"
-TEMPLATE_VERSION = "0.2.0"
+TEMPLATE_VERSION = "0.3.0"
 
 TYPES = {
     "progress": "Progress",
@@ -96,6 +96,10 @@ def git_state(cwd: Path) -> dict:
     }
 
 
+IMAGE_TYPES = {".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+               ".webp": "image/webp"}   # figures that are pictures (R, ggplot, tools' own plots), shown as they are
+
+
 def sha256_file(path: Path, limit_mb: int = 2048) -> str | None:
     """sha256 of a file; None for missing files or files above `limit_mb`."""
     if not path.is_file() or path.stat().st_size > limit_mb * 1024 * 1024:
@@ -145,11 +149,18 @@ def sort_key(ts: str, etype: str = "") -> str:
     """
     ts = str(ts)
     if "T" in ts:
-        return ts
+        try:  # compare instants, so entries logged in different time zones interleave correctly
+            d = datetime.fromisoformat(re.sub(r"Z$", "+00:00", ts))
+            return (d.astimezone(timezone.utc) if d.tzinfo else d).strftime("%Y-%m-%dT%H:%M:%S")
+        except ValueError:
+            return ts
     return f"{ts}T23:59:59" if etype == "session" else f"{ts}T12:00:00"
 
 
 # ---------------------------------------------------------------- YAML front matter
+
+_YAML_UNSAFE = re.compile("[\x7f-\x9f\u2028\u2029\ufeff]")
+
 
 def dump_front_matter(data: dict) -> str:
     """Minimal YAML emitter: block mappings/lists, JSON-quoted scalars.
@@ -166,7 +177,8 @@ def dump_front_matter(data: dict) -> str:
             return "true" if v else "false"
         if isinstance(v, (int, float)):
             return json.dumps(v)
-        return json.dumps(str(v), ensure_ascii=False)
+        # escape what YAML reads as a line break or rejects (C1 controls, NEL, LS/PS, BOM), e.g. text pasted from a PDF
+        return _YAML_UNSAFE.sub(lambda m: "\\u%04x" % ord(m.group()), json.dumps(str(v), ensure_ascii=False))
 
     def emit(obj, indent):
         pad = "  " * indent
@@ -201,13 +213,10 @@ def dump_front_matter(data: dict) -> str:
 def split_front_matter(text: str) -> tuple[str, str]:
     if not text.startswith("---"):
         raise ValueError("entry has no YAML front matter (must start with ---)")
-    parts = text.split("\n---", 2)
-    if len(parts) < 2:
+    m = re.match(r"---[ \t]*\n(.*?)^---[ \t]*$\n?(.*)", text, re.S | re.M)
+    if not m:
         raise ValueError("front matter is not closed with ---")
-    head = parts[0][3:]
-    body = parts[1]
-    body = body[body.index("\n") + 1:] if "\n" in body else ""
-    return head, body
+    return m.group(1), m.group(2)  # the body keeps any later "---" lines (rules, tables)
 
 
 def load_yaml(text: str):
@@ -238,9 +247,12 @@ def load_entries(log_dir: Path) -> list[dict]:
     for p in sorted((log_dir / "entries").glob("*.md")):
         if CONFLICT.search(p.name):
             continue
-        raw = p.read_text(encoding="utf-8")
-        head, body = split_front_matter(raw)
-        meta = load_yaml(head) or {}
+        raw = p.read_text(encoding="utf-8-sig")  # an editor may have added a byte-order mark
+        try:
+            head, body = split_front_matter(raw)
+            meta = load_yaml(head) or {}
+        except Exception as exc:  # name the file, or one bad entry hides which one blocks the build
+            raise ValueError(f"{p.name}: {exc}") from None
         meta["_path"] = p
         meta["_body"] = body.strip()
         meta["_sha"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -268,7 +280,7 @@ def term_key(name: str) -> str:
 
 
 def md_inline(text: str) -> str:
-    s = html.escape(text, quote=False)
+    s = html.escape(text)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
     s = re.sub(r"(?<![*\w])\*([^*\n]+)\*(?!\w)", r"<i>\1</i>", s)
@@ -279,18 +291,42 @@ def md_inline(text: str) -> str:
     )
     s = _TERM.sub(
         lambda m: '<span class="term" tabindex="0" data-term="{}">{}</span>'.format(
-            html.escape(term_key(m.group(1))), m.group(2) or m.group(1)
+            html.escape(term_key(html.unescape(m.group(1)))), m.group(2) or m.group(1)
         ),
         s,
     )
     return s
 
 
+def _cells(row: str) -> list[str]:
+    return [c.strip() for c in row.strip().strip("|").split("|")]
+
+
+def md_table(rows: list[str]) -> str:
+    """A pipe table: header row, |---|---:| separator (a colon on the right aligns that column right), body rows."""
+    head, aligns = _cells(rows[0]), _cells(rows[1])
+    right = [a.endswith(":") and not a.startswith(":") for a in aligns]
+
+    def row(cells, tag):
+        cells = (cells + [""] * len(head))[:len(head)]
+        return "<tr>" + "".join(f'<{tag}{" class=num" if right[i] else ""}>{md_inline(c)}</{tag}>'
+                                for i, c in enumerate(cells)) + "</tr>"
+    return ('<div class="mdtable"><table><thead>' + row(head, "th") + "</thead><tbody>" +
+            "".join(row(_cells(r), "td") for r in rows[2:]) + "</tbody></table></div>")
+
+
+_TABLE_SEP = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$")
+
+
 def md_block(text: str) -> str:
-    """Paragraphs, '- ' lists and '> ' quotes. Enough for log entries."""
-    out, para, items = [], [], []
+    """Paragraphs, '- ' lists, '> ' quotes and pipe tables. Enough for log entries."""
+    out, para, items, table = [], [], [], []
 
     def flush():
+        if table:
+            out.append(md_table(table) if len(table) >= 2 and _TABLE_SEP.match(table[1])
+                       else "<p>" + md_inline(" ".join(table)) + "</p>")
+            table.clear()
         if para:
             out.append("<p>" + md_inline(" ".join(para)) + "</p>")
             para.clear()
@@ -302,6 +338,10 @@ def md_block(text: str) -> str:
         st = line.strip()
         if not st:
             flush()
+        elif st.startswith("|") and (table or not para):
+            if items:
+                flush()
+            table.append(st)
         elif re.match(r"^[-*] ", st):
             if para:
                 flush()
@@ -309,7 +349,7 @@ def md_block(text: str) -> str:
         elif items and line.startswith("  "):
             items[-1] += " " + st
         else:
-            if items:
+            if items or table:
                 flush()
             para.append(st.lstrip("> ").strip() if st.startswith(">") else st)
     flush()
