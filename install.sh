@@ -3,6 +3,10 @@
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")" && pwd)/skills/project-log"
 DEST="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}/project-log"
+case "$SRC/" in
+  "$(cd "$(dirname "$DEST")" 2>/dev/null && pwd)/$(basename "$DEST")/"*)
+    echo "error: this clone is inside $DEST; clone it somewhere else (e.g. ~/Projects) and run install.sh from there" >&2; exit 1;;
+esac
 mkdir -p "$DEST"
 rsync -a --delete --exclude '__pycache__' --exclude '* 2.*' --exclude '.DS_Store' "$SRC/" "$DEST/"
 chmod +x "$DEST"/scripts/*.py "$DEST"/hooks/*.py

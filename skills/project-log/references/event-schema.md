@@ -37,6 +37,7 @@ audience: layered            # set by the kickoff round
 progress_file: docs/PROGRESS.md   # optional: the hand-written progress notes the reminder hook watches
 tabs: [overview, timeline, results, side, loops, next, digests, glossary, changelog]
 figures:
+  plotly: link               # link | embed: load the chart library from a CDN (small page) or embed it (~4.7 MB, offline)
   conventions: One sentence per agreed convention (e.g. "the baseline is always amber").
 threads:
   - id: norm-v2              # short, lowercase, used by --thread
@@ -46,8 +47,11 @@ threads:
     goal: Does the new normalisation reduce batch effects without losing biological signal?
 overview:
   figure: R12                # optional: one result's figure shown on the Overview (after the Gantt chart)
-  summary:                   # 3 short paragraphs, rewritten before each build; [[terms]] allowed
-    - ...
+  summary:                   # 3 cards of 2-3 short bullets, rewritten before each build; [[terms]] allowed
+    - - Where we are, bullet 1
+      - Where we are, bullet 2
+    - - What we learned ...
+    - - What's next ...
   tiles:                     # 3-4 key numbers
     - value: "−38%"
       label: batch effect (silhouette score) vs the baseline
@@ -79,7 +83,7 @@ provenance:
 **What we did:** Each one-sample config kept its original index, but the tool needs it to start at 1. Renumbered, added a test, restarted at 17:05.
 ```
 
-Body Markdown: paragraphs, `- ` lists, `**bold**`, `*italic*`, `` `code` ``, `[text](https://...)`, `[[term]]` or `[[term|shown text]]`.
+Body Markdown: paragraphs, `- ` lists, pipe tables (`| a | b |` with a `|---|---:|` line; a colon on the right aligns that column right), `**bold**`, `*italic*`, `` `code` ``, `[text](https://...)`, `[[term]]` or `[[term|shown text]]`.
 
 Optional fields: `verdict` (detours), `status` (loop types; default open), `aliases` (terms), `imported` + `reviewed` (backfill).
 
@@ -116,7 +120,7 @@ Loop types (followup, blocker, question, plan) stay open until an entry with `re
 result:
   id: "R1"                                   # assigned automatically
   so_what: "One sentence: why should the reader care?"
-  figure: "project-log/figures/out/batch_effect_v2.json"   # optional
+  figure: "project-log/figures/out/batch_effect_v2.json"   # optional: Plotly JSON, or an image (.png .svg .jpg .webp)
   static: "project-log/figures/out/batch_effect_v2.svg"    # optional
   script: "project-log/figures/scripts/batch_effect.py"    # required if figure is set
   figure_sha256: "…"                                       # written automatically: locks the figure
@@ -150,4 +154,4 @@ Errors stop the build:
 - imported entry with `reviewed: false`
 - an entry changed or deleted after it was published (unless `--accept-edits`, which records it)
 
-Warnings: an entry without a thread, a result without a git commit, a paper reference without a paper entry.
+Warnings: an entry without a thread (except `term`, `session` and `paper`, which don't need one), a result without a git commit (except imported ones), a paper reference without a paper entry.

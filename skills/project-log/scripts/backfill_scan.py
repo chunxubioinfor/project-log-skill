@@ -158,7 +158,7 @@ def main():
     ap.add_argument("--out", help="output folder (default: <repo>/project-log/backfill)")
     a = ap.parse_args()
     repo = Path(a.repo).resolve()
-    prog = Path(a.progress) if a.progress else next(iter(walk(repo, "PROGRESS.md")), None)
+    prog = Path(a.progress).resolve() if a.progress else next(iter(walk(repo, "PROGRESS.md")), None)
     scan = {
         "repo": str(repo), "scanned_at": plog.now_iso(),
         "progress_file": str(prog.relative_to(repo)) if prog else None,

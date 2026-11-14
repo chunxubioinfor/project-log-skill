@@ -1,0 +1,15 @@
+{
+  "name": "project-log-skill",
+  "description": "Claude Code plugins by Chunxu Han for research projects.",
+  "owner": {
+    "name": "Chunxu Han",
+    "url": "https://github.com/chunxubioinfor"
+  },
+  "plugins": [
+    {
+      "name": "project-log",
+      "source": "./",
+      "description": "Research project log and interactive progress page for Claude Code"
+    }
+  ]
+}

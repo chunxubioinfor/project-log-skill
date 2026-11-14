@@ -1,0 +1,10 @@
+{
+  "name": "project-log",
+  "version": "0.3.0",
+  "description": "Keeps an append-only research log while Claude works, and builds one interactive HTML page from it: timeline, Gantt chart, figures, open loops, glossary and provenance.",
+  "author": { "name": "Chunxu Han", "url": "https://github.com/chunxubioinfor" },
+  "homepage": "https://github.com/chunxubioinfor/project-log-skill",
+  "repository": "https://github.com/chunxubioinfor/project-log-skill",
+  "license": "MIT",
+  "keywords": ["research", "lab-notebook", "bioinformatics", "provenance", "progress-report"]
+}

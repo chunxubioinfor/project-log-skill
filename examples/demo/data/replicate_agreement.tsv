@@ -1,0 +1,4 @@
+condition	n_isoforms	pearson_r	median_abs_diff_IF
+Fibroblasts	249	0.8918	0.0651
+hESC	249	0.8712	0.0418
+iPS	249	1	8e-04

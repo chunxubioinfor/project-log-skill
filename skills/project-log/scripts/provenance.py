@@ -12,6 +12,7 @@ import argparse
 import json
 import socket
 import sys
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -38,6 +39,11 @@ def collect(scripts=(), data=(), run_manifest=None, data_version=(), cwd=None) -
         h = plog.sha256_file(p)
         if h:
             item["sha256"] = h
+        elif p.is_file():  # above the hashing limit (e.g. BAM, FASTQ): record size and time instead
+            st = p.stat()
+            item["size_bytes"] = st.st_size
+            item["modified"] = datetime.fromtimestamp(st.st_mtime).astimezone().replace(microsecond=0).isoformat()
+            print(f"note: {d} is too large to hash; recorded its size and modification time", file=sys.stderr)
         elif not p.exists():
             print(f"warning: data file not found: {d}", file=sys.stderr)
         items.append(item)

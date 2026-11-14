@@ -158,6 +158,12 @@
   function drawFigure(box) {
     var fig = D.figures[box.dataset.fig];
     if (!fig) return;
+    if (fig.image) {   // a picture made by another tool (e.g. R): shown as it is
+      box.classList.add("figimg");
+      box.innerHTML = '<img src="' + fig.image + '" alt="' + esc(fig.alt || "") + '" loading="lazy">';
+      box.dataset.drawn = "img";
+      return;
+    }
     if (typeof Plotly === "undefined") { box.innerHTML = '<p class="err">The chart library did not load.</p>'; return; }
     var drop = ["lasso2d", "select2d"];
     if (!LOCAL) drop.push("toImage");   // hosted viewers cannot download files
@@ -166,7 +172,10 @@
   }
   function renderOpenFigures() {
     $all("details.rcard[open] .figbox, .keyfig .figbox").forEach(function (b) {
-      if (b.offsetParent !== null) { if (b.dataset.drawn) Plotly.Plots.resize(b); else drawFigure(b); }
+      if (b.offsetParent !== null) {
+        if (!b.dataset.drawn) drawFigure(b);
+        else if (b.dataset.drawn !== "img" && typeof Plotly !== "undefined") Plotly.Plots.resize(b);
+      }
     });
   }
   document.addEventListener("toggle", function (ev) {
@@ -187,10 +196,10 @@
     var sum = D.overview.summary;
     var LABELS = ["Where we are", "What we learned", "What’s next"];
     if (!sum.length) {
-      html += '<div class="block"><div class="summary plain"><p class="muted">No summary yet. Claude writes three short paragraphs into project.yaml (overview.summary) before each build.</p></div></div>';
+      html += '<div class="block"><div class="summary plain"><p class="muted">No summary yet. Claude writes three short cards of bullets into project.yaml (overview.summary) before each build.</p></div></div>';
     } else {
       html += '<div class="block"><div class="summary">' + sum.map(function (p, i) {
-        return '<div class="sum"><h3>' + esc(p.label || LABELS[i] || "") + "</h3><p>" + p.html + "</p></div>";
+        return '<div class="sum"><h3>' + esc(p.label || LABELS[i] || "") + "</h3>" + p.html + "</div>";
       }).join("") + "</div></div>";
     }
     if (D.overview.tiles.length) {
@@ -324,7 +333,7 @@
     if (refs.corrects) bits.push("Corrects: " + refs.corrects.map(entryLink).join(", "));
     if (refs.related) bits.push("Related: " + refs.related.map(entryLink).join(", "));
     if (refs.results) bits.push("Results: " + refs.results.map(resultLink).join(", "));
-    if (refs.papers) bits.push("Papers: " + refs.papers.map(function (p) { return '<a href="#digests" data-tab-link="digests">' + esc(p) + "</a>"; }).join(", "));
+    if (refs.papers) bits.push("Papers: " + refs.papers.map(function (p) { return '<a href="#digests" data-tab-link="digests">' + esc(BYID[p] ? BYID[p].title : p) + "</a>"; }).join(", "));
     if (refs.commits) bits.push("Commits: " + refs.commits.map(function (c) { return '<span class="mono">' + esc(c) + "</span>"; }).join(", "));
     if (e.resolved_by) bits.push("Closed by: " + entryLink(e.resolved_by));
     var banner = e.corrected_by.length ? '<p class="banner">Corrected later: ' + e.corrected_by.map(entryLink).join(", ") + "</p>" : "";
@@ -474,7 +483,7 @@
       (papers.length ? '<ul class="cards">' + papers.map(function (e) {
         var p = e.paper, links = [];
         if (p.doi) links.push('<a href="https://doi.org/' + esc(p.doi.replace(/^doi:/i, "")) + '" target="_blank" rel="noopener">DOI</a>');
-        if (p.url) links.push('<a href="' + esc(p.url) + '" target="_blank" rel="noopener">Full text</a>');
+        if (p.url && /^https?:\/\//i.test(p.url)) links.push('<a href="' + esc(p.url) + '" target="_blank" rel="noopener">Full text</a>');
         var cites = citedBy(e);
         return '<li class="card paper" id="' + esc(e.id) + '"><h3 class="q">' + esc(e.title) + '</h3><p class="cite">' + esc(p.citation) + "</p><dl>" +
           (p.finding ? "<dt>Finding</dt><dd>" + esc(p.finding) + "</dd>" : "") +

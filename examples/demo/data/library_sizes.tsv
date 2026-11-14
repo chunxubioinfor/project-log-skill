@@ -1,0 +1,7 @@
+sample	condition	reads_assigned	isoforms_over_1_tpm
+Fibroblasts_0	Fibroblasts	882734	745
+Fibroblasts_1	Fibroblasts	983467	736
+hESC_0	hESC	549924	864
+hESC_1	hESC	552242	859
+iPS_0	iPS	336789	723
+iPS_1	iPS	310502	696
