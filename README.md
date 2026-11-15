@@ -97,7 +97,7 @@ project-log/
 
 The page it builds from that log:
 
-![The demo page: summary, key numbers, what changed, and a Gantt chart of the project](docs/screenshot.png)
+![A tour of the built page: overview, results with their provenance, figures, and the timeline](docs/page.gif)
 
 Setup also adds a short "Project log" section to your `CLAUDE.md`. When you edit your progress notes (e.g. `PROGRESS.md`), a small hook reminds Claude to log the same facts. Commit `project-log/` like any other code.
 
