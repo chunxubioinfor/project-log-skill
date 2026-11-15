@@ -13,7 +13,7 @@ Claude logs results, bugs, detours and decisions as they happen, and builds one 
 
 [**Live demo**](https://claude.ai/artifact/Bfw53U8hSVwVEtTxFsraP8) · [Install](#install) · [How to use it](#use-it) · [What you get](#what-you-get)
 
-![The demo page: summary, key numbers, what changed, and a Gantt chart of the project](docs/screenshot.png)
+![Claude logs a result with its provenance as it works, then builds the project page](docs/demo.gif)
 
 <sub>The demo is a real isoform-switch analysis of the example data in IsoformSwitchAnalyzeR; the people and a few mishaps are made up. Rebuild it with <code>examples/demo/make_demo.sh</code>.</sub>
 
@@ -94,6 +94,10 @@ project-log/
   figures/out/        interactive Plotly JSON, plus SVG for slides
   report/             the built page (about 0.3 MB) and its build history
 ```
+
+The page it builds from that log:
+
+![The demo page: summary, key numbers, what changed, and a Gantt chart of the project](docs/screenshot.png)
 
 Setup also adds a short "Project log" section to your `CLAUDE.md`. When you edit your progress notes (e.g. `PROGRESS.md`), a small hook reminds Claude to log the same facts. Commit `project-log/` like any other code.
 
