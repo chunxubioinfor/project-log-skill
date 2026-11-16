@@ -6,5 +6,6 @@
   "homepage": "https://github.com/chunxubioinfor/project-log-skill",
   "repository": "https://github.com/chunxubioinfor/project-log-skill",
   "license": "MIT",
+  "icon": ".claude-plugin/icon.png",
   "keywords": ["research", "lab-notebook", "bioinformatics", "provenance", "progress-report"]
 }

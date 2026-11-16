@@ -11,7 +11,7 @@ Claude logs results, bugs, detours and decisions as they happen, and builds one 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3B6FC4)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-9AA8B5)](LICENSE)
 
-[**Live demo**](https://claude.ai/artifact/Bfw53U8hSVwVEtTxFsraP8) · [Install](#install) · [How to use it](#use-it) · [What you get](#what-you-get)
+[Install](#install) · [How to use it](#use-it) · [What you get](#what-you-get)
 
 ![Claude logs a result with its provenance as it works, then builds the project page](docs/demo.gif)
 
