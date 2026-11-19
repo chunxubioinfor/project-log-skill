@@ -37,6 +37,25 @@ echo "{\"session_id\":\"smoke$$\",\"tool_input\":{\"file_path\":\"$T/demo/docs/P
   && pass "hook reminds after a progress-notes edit" || fail "hook reminds after a progress-notes edit"
 quiet=$(echo "{\"session_id\":\"smoke$$b\",\"tool_input\":{\"file_path\":\"$T/demo/README.md\"}}" | python3 "$H")
 [ -z "$quiet" ] && pass "hook stays quiet for other files" || fail "hook stays quiet for other files"
+start() { echo "{\"hook_event_name\":\"SessionStart\",\"session_id\":\"smoke$$\",\"cwd\":\"$1\"}" | python3 "$H"; }
+[ -z "$(start "$T/demo")" ] && pass "session start is quiet when the log is current" || fail "session start is quiet when the log is current"
+echo "# keep isoforms above 1 TPM" >> analysis/run_isoform_switch.R && git commit -qam "Tighten the expression filter"
+start "$T/demo" | grep -q "Tighten the expression filter" && pass "session start lists commits that are not logged" || fail "session start lists commits that are not logged"
+start "$T" | grep -q "Tighten the expression filter" && pass "session start finds a repo one folder down" || fail "session start finds a repo one folder down"
+bash_hook() { echo "{\"tool_name\":\"Bash\",\"session_id\":\"smoke$$-$2\",\"cwd\":\"$T/demo\",\"tool_input\":{\"command\":\"$1\"}}" | python3 "$H"; }
+bash_hook "git commit -m x" c | grep -q additionalContext && pass "a git commit triggers the check" || fail "a git commit triggers the check"
+[ -z "$(bash_hook "ls -la" d)" ] && pass "other commands stay quiet" || fail "other commands stay quiet"
+
+S="$T/fresh"; mkdir -p "$S" && git -C "$S" init -q
+(cd "$S" && python3 "$PL/setup_project.py" --title "Fresh" > /dev/null)
+[ -f "$S/PROGRESS.md" ] && pass "setup creates PROGRESS.md" || fail "setup creates PROGRESS.md"
+python3 - "$S/.claude/settings.json" <<'EOF' && pass "setup adds session-start and commit triggers" || fail "setup adds session-start and commit triggers"
+import json, sys
+h = json.load(open(sys.argv[1]))["hooks"]
+assert h["SessionStart"] and "Bash" in h["PostToolUse"][0]["matcher"]
+EOF
+echo "my notes" > "$S/PROGRESS.md"; (cd "$S" && python3 "$PL/setup_project.py" > /dev/null)
+grep -q "my notes" "$S/PROGRESS.md" && pass "setup keeps an existing PROGRESS.md" || fail "setup keeps an existing PROGRESS.md"
 
 n=$(ls project-log/entries | wc -l)
 echo '[{"type":"followup","thread":"switch","title":"ok"},{"type":"result","thread":"switch","title":"no so-what"}]' \
@@ -60,6 +79,10 @@ assert 'data-term=\\"r&amp;d\\"' in s, "term key escaped twice"
 assert "<table>" in s.replace("\\u003c", "<"), "QC table not rendered"
 assert '"image": "data:image/png;base64,' in s, "image figure not embedded"
 EOF
+
+echo 'published_url: https://claude.ai/artifact/smoke' >> project-log/project.yaml
+uv run --quiet "$PL/build.py" | grep -q "Republish now: .* to https://claude.ai/artifact/smoke" \
+  && pass "build asks to republish the online page" || fail "build asks to republish the online page"
 
 uv run --quiet "$PL/validate.py" > /dev/null && pass "demo still validates after the checks" || fail "demo still validates"
 echo "smoke test passed"
