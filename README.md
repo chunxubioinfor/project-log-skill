@@ -7,7 +7,7 @@
 Claude logs results, bugs, detours and decisions as they happen, and builds one interactive page your supervisor can read in two minutes.
 
 [![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-D97757)](https://claude.com/claude-code)
-[![Version](https://img.shields.io/badge/version-0.3.0-0E8C78)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.1-0E8C78)](CHANGELOG.md)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3B6FC4)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-9AA8B5)](LICENSE)
 
@@ -99,7 +99,7 @@ The page it builds from that log:
 
 ![A tour of the built page: overview, results with their provenance, figures, and the timeline](docs/page.gif)
 
-Setup also adds a short "Project log" section to your `CLAUDE.md`. When you edit your progress notes (e.g. `PROGRESS.md`), a small hook reminds Claude to log the same facts. Commit `project-log/` like any other code.
+Setup also adds a short "Project log" section to your `CLAUDE.md`. It also creates `PROGRESS.md` for handoff notes if you don't have one. A small hook keeps the log from falling behind: at the start of each session and after commits, it tells Claude which commits are not logged yet, and when `PROGRESS.md` changes, it asks Claude to log the same facts. If you publish the page as an artifact, every build republishes it. Commit `project-log/` like any other code.
 
 ## Privacy
 

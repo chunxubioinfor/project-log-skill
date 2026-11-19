@@ -15,7 +15,9 @@ Stdlib only. Run from the repo root after the kickoff round (see references/setu
 What it does
   1. project-log/ folders, and project.yaml if it does not exist yet (never overwritten)
   2. a "Project log" section in CLAUDE.md, between markers (replaced on rerun, never duplicated)
-  3. the progress-notes reminder hook in .claude/settings.json (added once)
+  3. the progress notes file (PROGRESS.md by default) with a short template, if it does not exist yet
+  4. the reminder hook in .claude/settings.json (added once): at session start, after git commits,
+     and after the progress notes are edited
 """
 from __future__ import annotations
 
@@ -31,6 +33,18 @@ import plog  # noqa: E402
 
 START, END = "<!-- project-log:start -->", "<!-- project-log:end -->"
 HOOK_ID = "project-log/hooks/progress_reminder.py"
+HOOK_EVENTS = {"PostToolUse": "Edit|Write|MultiEdit|NotebookEdit|Bash", "SessionStart": None}  # event: matcher
+PROGRESS_TEMPLATE = """# Progress
+
+Handoff notes: where the work stands and what comes next. Keep it short and current.
+The full record (results, bugs, decisions) is in project-log/; each new fact here also gets a log entry.
+
+## Now
+
+## Next
+
+## Open questions
+"""
 SKILL_DIR = Path(__file__).resolve().parents[1]
 # Installed as a plugin, the plugin's own hooks/hooks.json runs the reminder in every project: nothing to add.
 AS_PLUGIN = "/plugins/cache/" in SKILL_DIR.as_posix()
@@ -112,6 +126,15 @@ def write_project_yaml(log_dir: Path, a) -> str:
     return f"wrote {p}"
 
 
+def write_progress_file(root: Path, rel: str) -> str:
+    p = root / rel
+    if p.exists():
+        return f"kept existing {p}"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(PROGRESS_TEMPLATE, encoding="utf-8")
+    return f"wrote {p} (handoff notes, from a template)"
+
+
 def patch_claude_md(root: Path, section: str) -> str:
     p = root / "CLAUDE.md"
     text = p.read_text(encoding="utf-8") if p.exists() else ""
@@ -135,16 +158,26 @@ def patch_settings(path: Path) -> str:
         except json.JSONDecodeError:
             return f"SKIPPED {path}: not valid JSON, add the hook by hand (see references/setup.md)"
     hooks = data.setdefault("hooks", {}) if isinstance(data, dict) else None
-    post = hooks.setdefault("PostToolUse", []) if isinstance(hooks, dict) else None
-    if not isinstance(post, list) or not all(isinstance(g, dict) and isinstance(g.get("hooks", []), list) for g in post):
+    if not isinstance(hooks, dict):
         return f"SKIPPED {path}: unexpected layout, add the hook by hand (see references/setup.md)"
-    if any(HOOK_ID in h.get("command", "") for grp in post for h in grp.get("hooks", []) if isinstance(h, dict)):
+    changed = []
+    for event, matcher in HOOK_EVENTS.items():
+        groups = hooks.setdefault(event, [])
+        if not isinstance(groups, list) or not all(isinstance(g, dict) and isinstance(g.get("hooks", []), list) for g in groups):
+            return f"SKIPPED {path}: unexpected layout, add the hook by hand (see references/setup.md)"
+        ours = [g for g in groups if any(HOOK_ID in h.get("command", "") for h in g.get("hooks", []) if isinstance(h, dict))]
+        if not ours:
+            groups.append({**({"matcher": matcher} if matcher else {}),
+                           "hooks": [{"type": "command", "command": hook_cmd(), "timeout": 10}]})
+            changed.append(event)
+        elif matcher and ours[0].get("matcher") != matcher:  # an older setup watched edits only
+            ours[0]["matcher"] = matcher
+            changed.append(event)
+    if not changed:
         return f"hook already present in {path}"
-    post.append({"matcher": "Edit|Write|MultiEdit|NotebookEdit",
-                 "hooks": [{"type": "command", "command": hook_cmd(), "timeout": 10}]})
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return f"added the progress-notes reminder hook to {path}"
+    return f"added the project-log reminder hook ({', '.join(changed)}) to {path}"
 
 
 def main():
@@ -177,8 +210,10 @@ def main():
             a.progress_file = yaml_field(log_dir, "progress_file") or (
                 "docs/PROGRESS.md" if (root / "docs" / "PROGRESS.md").exists() else "PROGRESS.md")
         report.append(write_project_yaml(log_dir, a))
+        progress_file = yaml_field(log_dir, "progress_file") or a.progress_file
+        report.append(write_progress_file(root, progress_file))
         owner = yaml_field(log_dir, "owner") or a.owner or ""
-        report.append(patch_claude_md(root, claude_section(owner, yaml_field(log_dir, "progress_file") or a.progress_file)))
+        report.append(patch_claude_md(root, claude_section(owner, progress_file)))
         if AS_PLUGIN:
             report.append("reminder hook: comes with the project-log plugin, nothing added to .claude/settings.json")
         else:

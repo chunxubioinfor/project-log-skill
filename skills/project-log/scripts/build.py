@@ -276,6 +276,9 @@ def main():
     (log_dir / "report" / "build-manifest.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     print(f"build: wrote {out} ({len(html) / 1e6:.1f} MB, {len(entries)} entries, {len(new_ids)} new)")
     print_changes(data, record)
+    url = ctx["project"].get("published_url")
+    if url:
+        print(f"\nRepublish now: publish {out} to {url} with the Artifact tool, so the online page matches this build.")
 
 
 def print_changes(data: dict, record: dict) -> None:

@@ -45,7 +45,7 @@ python3 $PL/setup_project.py --title "..." --lede "..." --owner "..." --group ".
 
 A thread's optional fifth field sets its status (`active`, `done` or `paused`; default `active`). Use `paused` for a stage that hasn't started, so the Gantt chart doesn't draw it as running.
 
-It creates the `project-log/` folders, writes `project.yaml` (an existing one is never overwritten), adds a "Project log" section to CLAUDE.md between markers, and sets up the PROGRESS.md reminder hook (see below). It is safe to run again.
+It creates the `project-log/` folders, writes `project.yaml` (an existing one is never overwritten), creates the progress notes file from a short template if it does not exist (an existing one is kept), adds a "Project log" section to CLAUDE.md between markers, and sets up the reminder hook (see below). It is safe to run again.
 
 **If sessions start in a different folder** (e.g. on a shared cluster where Claude Code is started one folder above the repo), hooks are read only from that root's `.claude/`. The script prints a note when it sees a parent `.claude/`. Add the hook there too:
 
@@ -53,8 +53,13 @@ It creates the `project-log/` folders, writes `project.yaml` (an existing one is
 python3 $PL/setup_project.py --hooks-only --settings /path/to/parent/.claude/settings.json
 ```
 
+**The reminder hook** only reminds; Claude writes the entries. It speaks up at three moments, and only in projects with a `project-log/` folder:
+- **Session start:** if commits landed since the newest entry, it lists them and asks Claude to log them first. It also checks repos one folder down, for sessions started above the repo.
+- **After a `git commit`:** the same check, at most once every 15 minutes.
+- **After the progress notes are edited:** it asks Claude to log the same facts.
+
 **How the reminder hook is installed** depends on how the skill was installed:
-- **As a plugin** (`/plugin install`): the plugin brings the hook along, for every project. It stays silent unless the edited file is the progress notes of a project with a `project-log/` folder. `setup_project.py` adds nothing to `.claude/settings.json`.
+- **As a plugin** (`/plugin install`): the plugin brings the hook along, for every project. `setup_project.py` adds nothing to `.claude/settings.json`.
 - **By hand** (`install.sh`): `setup_project.py` adds the hook to the project's `.claude/settings.json`, pointing at the installed copy (`$HOME/.claude/skills/project-log/...`). It stays silent where that file is missing, e.g. for a collaborator who uses the plugin, whose own hook covers it.
 
 Either way, every machine that should get reminders needs the skill installed.

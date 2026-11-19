@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 (2026-11-19): the log keeps up with the commits
+
+- **Reminders follow the commits.** In a 10-day project the log fell 5 days behind, because the only reminder fired when PROGRESS.md was edited. The hook now also runs at session start and after each `git commit`: if commits landed since the newest entry, it lists them and asks Claude to log them. It also checks repos one folder down, for sessions started above the repo. Manual installs: run `setup_project.py` again to add the new triggers.
+- **PROGRESS.md is created at setup** from a short template, if the project has none. An existing file is never touched.
+- **The online page stays in sync.** Once `published_url` is set, every build republishes the artifact, without asking; the build prints a reminder.
+
 ## 0.3.0 (2026-11-14): plugin, smaller pages, a real-looking demo
 
 - **Install as a Claude Code plugin** (`/plugin marketplace add chunxubioinfor/project-log-skill`). The plugin brings the progress-notes hook along, so setup no longer writes one into the project. A manual install writes the hook with the real install path.

@@ -64,6 +64,8 @@ Each entry except `term`, `paper` and `session` needs a `--thread` from `project
 
 **When the progress notes are updated** (`progress_file` in project.yaml, usually PROGRESS.md): each new fact in that update (bug, decision, result, open item) also becomes a log entry. PROGRESS.md stays the handoff note; the log is the structured record. If you notice the two have drifted apart (a fact in one and not the other), fill the gap in whichever is missing it. Neither one "wins": both should hold the fact.
 
+**When a reminder lists commits that are not in the log** (at session start, or after a `git commit`): log what matters in them before new work, reading the commits' diffs where the message is not enough. If none deserves its own entry, write one short `progress` entry that covers them, so the same commits are not listed again.
+
 Choosing types, in common cases:
 - **News that closes an open item:** write one entry that `--resolves` it. If the news also shows an earlier claim was wrong, the same entry may `--corrects` it too.
 - **A decision relayed by the user** ("the supervisor decided…"): log it as a `decision`, and say in the body who decided and how it reached us.
@@ -88,7 +90,7 @@ When the user ends the session ("let's wrap up", "that's all for today"). A one-
 2. **Log the conversation itself.** Things that were discussed or agreed but never logged become entries too, as do the user's additions (corrections as `correction` entries).
 3. **Write one `session` entry.** Give it a title like "16 Oct: v2 approved, first blocker", one short paragraph on what happened and what is next, and a `--thread` only if the session was about one thread. Write it directly; the user can correct it later.
 4. **Follow the project's own end-of-session rules** as well (e.g. its handoff note in PROGRESS.md, committing).
-5. **Offer to rebuild the page**, and to republish the shared link if `published_url` is set.
+5. **Offer to rebuild the page.** If `published_url` is set, the rebuild also republishes it (see below).
 
 ## Workflow: update the page (build)
 
@@ -107,15 +109,15 @@ When the user asks to update, rebuild or refresh the project log or the page:
    3. Commit `project-log/report/`.
 
    A page built before its entries were committed records them as "not committed" for good.
-6. **Republish.** If `published_url` is set, offer in one line to republish the shared link. Republish without asking only if the user asked to share or publish.
+6. **Republish.** If `published_url` is set, publish the new page to that same URL with the Artifact tool after every build, without asking; the build prints a reminder. This keeps the online page in step with the file.
 
-## Workflow: publish a shareable link
+## Workflow: publish online (artifact)
 
-When the user asks for a link to share: publish `project-log/report/project-log.html` with the Artifact tool, if one is available. On the first publish, use the project's short title and the icon `timeline`. Afterwards, republish to the same artifact URL, recorded in `project.yaml` under `published_url`. The link is private until the user shares it from the page's Share menu.
+When the user wants the page online, to read in the browser or to share: publish `project-log/report/project-log.html` with the Artifact tool, if one is available. On the first publish, use the project's short title and the icon `timeline`, and record the URL in `project.yaml` as `published_url`. From then on, every build republishes to that URL. The page is private until the user shares it from its Share menu.
 
 ## Setup and backfill
 
-- New project, or "set up the project log": [references/setup.md](references/setup.md). It covers the kickoff round (audience, tabs, figure conventions, how charts load), `setup_project.py`, the CLAUDE.md section and the PROGRESS.md hook.
+- New project, or "set up the project log": [references/setup.md](references/setup.md). It covers the kickoff round (audience, tabs, figure conventions, how charts load), `setup_project.py`, the CLAUDE.md section and the reminder hook.
 - Existing history: [references/backfill.md](references/backfill.md). The import from PROGRESS.md, git and run manifests produces `imported` entries. The user reviews them on a `--draft` page and approves them with `mark_reviewed.py` before the first build.
 
 ## Problems
