@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 LOG_DIR_NAME = "project-log"
-TEMPLATE_VERSION = "0.3.0"
+TEMPLATE_VERSION = "0.3.1"
 
 TYPES = {
     "progress": "Progress",
